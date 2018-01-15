@@ -8,7 +8,18 @@ import time
 import argparse
 from urllib.request import Request, urlopen
 from urllib.parse import urlencode
+from datetime import datetime
 import requests
+
+# default parameter
+dry_run = False
+format = 'mp3'
+quality = 1
+overwrite_lock = False
+fake_headers = { 'Content-Type': 'application/json',
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.84 Safari/537.36'
+                }
+custom_headers = {}
 
 """example content
 continue_download is not supported!
@@ -86,20 +97,18 @@ continue_download is not supported!
 }
 """
 
-dry_run = False
-fake_headers = { 'Content-Type': 'application/json',
-                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.84 Safari/537.36'
-                }
-custom_headers = {}
-format = 'mp3'
-quality = 1
-maximum_timeout = 60
-
 
 class loaderCDN():
     stream_types = ['mp4','flv','avi','mp3','wav','ogg','flac']
     api_url = "https://loadercdn.io/api/v1/create"
-    api_key = "RD1Dn5kDjmf1br4fk9IfgcQ3nkajGB6Wtgw8GW9" # please apply for your own free copy
+    api_key = "" # please apply for your own free copy
+
+    def set_key(self,api_key):
+        if api_key:
+            self.api_key = api_key
+        else:
+            print("Empty api_key. Exit.")
+            sys.exit()
 
     def api_req(self, url, format="", direct=False, seek="", duration="", headers=fake_headers):
         """
@@ -251,15 +260,15 @@ def download_main(myloader, URLs=[], info_only=False, format=format,quality=qual
                     avail_formats = [x['format'] for x in content['formats']]
                     if format in avail_formats:
                         index = avail_formats.index(format)
-                        title = content['formats'][index]['filename']
-                        url = content['formats'][index]['url']
+                        title = content['formats'][index]['filename'].strip()
+                        url = content['formats'][index]['url'].strip()
                         print("解析成功: " + url)
 
                         if not dry_run and not info_only:
                             if format == content['originalFormat']:
                                 url = url + '&quality=' + str(quality)
 
-                            if format == 'mp4':
+                            if format == 'mp4' and "bilibili" in url:
                                 print(".mp4 download is not currently supported on bilibili.com")
                                 print("Please choose another format")
                                 sys.exit()
@@ -276,6 +285,17 @@ def download_main(myloader, URLs=[], info_only=False, format=format,quality=qual
 
                             filename = filepath + os.path.sep + title
 
+                            global overwrite_lock
+                            if os.path.isfile(filename):
+                                if overwrite_lock:
+                                    backupfile = (filepath + os.path.sep + "backup-" + title.split('.')[0]
+                                            + datetime.now().strftime('%Y-%m-%d-%H-%M') + '.' + title.split('.')[1])
+                                    os.rename(filename, backupfile)
+                                else:
+                                    print("视频已存在: %s" % title)
+                                    count += 1
+                                    continue
+
                             try:
                                 r = requests.get(url,headers=_headers,stream=True)
                                 chunk_size = 512*1024 # 单次请求最大值
@@ -290,7 +310,7 @@ def download_main(myloader, URLs=[], info_only=False, format=format,quality=qual
 
                             print("%s下载完毕\n" % title)
 
-                time.sleep(10)
+                time.sleep(5)
                 count += 1
 
     except Exception as e:
@@ -300,7 +320,7 @@ def download_main(myloader, URLs=[], info_only=False, format=format,quality=qual
 def main():
 
     parser = argparse.ArgumentParser(
-        prog='loadercdn bilibili',
+        prog='loadercdn api',
         usage='load-bili [OPTION]... URL...',
         description='A loaderCDN API port to python, default format: mp3',
         add_help=False,
@@ -327,12 +347,20 @@ def main():
         help='specify downloading format'
     )
     parser.add_argument(
+        '-f', '--force', action='store_true',
+        help='force overwrite existing file'
+    )
+    parser.add_argument(
         '-H', '--headers', metavar="HEADER_FILE",
         help='Load headers.txt'
     )
     parser.add_argument(
         '-I', '--input-file', metavar='FILE', type=argparse.FileType('r'),
         help='Read non-playlist URLs from FILE'
+    )
+    parser.add_argument(
+        '-k', '--key', type=str,
+        help='supply loadercdn api key'
     )
 
     parser.add_argument('URL', nargs='*', help=argparse.SUPPRESS)
@@ -347,6 +375,8 @@ def main():
     global custom_headers
     global format
     global quality
+    global api_key
+    global overwrite_lock
 
     info_only = args.info
     if args.url:
@@ -357,6 +387,9 @@ def main():
 
     if args.format:
         format = str(args.format)
+
+    if args.force:
+        overwrite_lock = True
 
     URLs = []
     if args.input_file:
@@ -369,8 +402,13 @@ def main():
         parser.print_help()
         sys.exit()
 
+    if not args.key:
+        print("Please enter your loaderCDN api key: -k/--key api_key")
+        sys.exit()
+
     try:
         myloader = loaderCDN()
+        myloader.set_key(args.key)
         download_main(myloader, URLs, info_only=info_only ,format=format,quality=quality)
     except Exception as e:
         print(e)
