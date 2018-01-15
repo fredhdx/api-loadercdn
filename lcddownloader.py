@@ -17,13 +17,18 @@ dry_run = False
 format = 'mp3'
 quality = 1
 overwrite_lock = False
+start_position = 1
+original_list_name = ""
 request_timeout = 30
+
 fake_headers = { 'Content-Type': 'application/json',
                 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.84 Safari/537.36'
                 }
 custom_headers = {}
+
 cdn_formats = ['mp3','mp4','acc','flv','wma','ogg','mkv','avi','rmvb','mpg','mpeg','vob','aif','AIFC','AIF'
         'wav','ape']
+
 
 """example content
 continue_download is not supported!
@@ -299,8 +304,13 @@ def download_main(myloader, URLs=[], url_only=False, format=format,quality=quali
                 os.makedirs(save_dir)
 
             # logging
+            global start_position
+            global original_list_name
             flog = open("log.txt",'w')
             flog.write("开始下载\n")
+            if original_list_name:
+                flog.write("url列表文件: %s\n" % original_list_name)
+            flog.write("从[URLs]第%d条开始\n" % start_position)
             flog.flush()
 
             for uri in URLs:
@@ -486,7 +496,7 @@ def main():
     )
     parser.add_argument(
         '-k', '--key', type=str,
-        help='supply loadercdn api key'
+        help='supply loadercdn api key: string or key.txt'
     )
 
     parser.add_argument(
@@ -511,7 +521,6 @@ def main():
     global custom_headers
     global format
     global quality
-    global api_key
     global overwrite_lock
 
     url_only = args.url
@@ -531,6 +540,8 @@ def main():
     if args.input_file:
         print("You are loading urls from %s", args.input_file)
         URLs.extend([x for x in args.input_file.read().splitlines() if x])
+        global original_list_name
+        original_list_name = str(args.input_file)
 
     URLs.extend(args.URL)
 
@@ -546,14 +557,24 @@ def main():
         sys.exit()
 
     URLs = URLs[list_start-1:list_end]
+    global start_position
+    start_position = list_start
 
+    api_key = ""
     if not args.key:
         print("Please enter your loaderCDN api key: -k/--key api_key")
         sys.exit()
+    else:
+        if "key.txt" in args.key:
+            with open("key.txt", 'r') as keyfile:
+                api_key = keyfile.read().strip()
+        else:
+            api_key = args.key
+
 
     try:
         myloader = loaderCDN()
-        myloader.set_key(args.key)
+        myloader.set_key(api_key)
         download_main(myloader, URLs, url_only=url_only ,format=format,quality=quality)
     except Exception as e:
         print(e)
@@ -561,5 +582,4 @@ def main():
 
 if __name__ == '__main__':
     main()
-
 
