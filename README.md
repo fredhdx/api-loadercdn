@@ -23,7 +23,7 @@ optional arguments:
                         Load headers.txt
   -I FILE, --input-file FILE
                         Read non-playlist URLs from FILE
-  -k KEY, --key KEY     supply loadercdn api key
+  -k KEY, --key KEY     supply loadercdn api key, or key.txt
   -s START, --start START
                         starting position of URLs list: 1-len(URLs)
   -e END, --end END     end position of URLs list: 1-len(URLs)
