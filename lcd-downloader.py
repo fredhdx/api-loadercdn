@@ -297,13 +297,17 @@ def download_main(myloader, URLs=[], info_only=False, format=format,quality=qual
                                     continue
 
                             try:
+                                size = 0
                                 r = requests.get(url,headers=_headers,stream=True)
                                 chunk_size = 512*1024 # 单次请求最大值
                                 with open(filename,'wb') as f:
                                     for chunk in r.iter_content(chunk_size=chunk_size):
                                         if chunk:
                                             f.write(chunk)
+                                            size += len(chunk)
                                             f.flush()
+                                        sys.stdout.write('\b'*64 + 'Now: %d' % size)
+                                        sys.stdout.flush()
                             except Exception as e:
                                 print(e)
                                 sys.exit(1)
