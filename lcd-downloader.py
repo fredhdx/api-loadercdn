@@ -247,9 +247,14 @@ def download_main(myloader, URLs=[], info_only=False, format=format,quality=qual
             if not os.path.isdir(save_dir):
                 os.makedirs(save_dir)
 
-            for url in URLs:
+            # logging
+            flog = open("log.txt",'w')
+            flog.write("开始下载\n")
+            flog.flush()
+
+            for uri in URLs:
                 # use loaderCDN API to get downloadable response
-                response = myloader.api_req(url,headers=_headers)
+                response = myloader.api_req(uri,headers=_headers)
 
                 if response:
                     print("开始解析第%d/%d条视频" % (count+1,len(URLs)))
@@ -288,15 +293,22 @@ def download_main(myloader, URLs=[], info_only=False, format=format,quality=qual
                             global overwrite_lock
                             if os.path.isfile(filename):
                                 if overwrite_lock:
+                                    flog.write('重新下载: %d, %s\n' % (count+1, uri))
+                                    flog.flush()
                                     backupfile = (filepath + os.path.sep + "backup-" + title.split('.')[0]
-                                            + datetime.now().strftime('%Y-%m-%d-%H-%M') + '.' + title.split('.')[1])
+                                            + datetime.now().strftime('%Y-%m-%d-%H-%M') + '.'
+                                            + title.split('.')[1])
                                     os.rename(filename, backupfile)
                                 else:
+                                    flog.write('已存在: %d, %s\n' % (count+1, uri))
+                                    flog.flush()
                                     print("视频已存在: %s" % title)
                                     count += 1
                                     continue
 
                             try:
+                                flog.write('开始下载: %d, %s\n' % (count+1, uri))
+                                flog.flush()
                                 size = 0
                                 r = requests.get(url,headers=_headers,stream=True)
                                 chunk_size = 512*1024 # 单次请求最大值
@@ -317,6 +329,8 @@ def download_main(myloader, URLs=[], info_only=False, format=format,quality=qual
                 time.sleep(5)
                 count += 1
 
+            flog.write('\n列表下载完成\n')
+            flog.close()
     except Exception as e:
         print(e)
         sys.exit(1)
