@@ -12,6 +12,8 @@ Visit https://loadercdn.io/ to sign up for your free API.
 *You must supply your loaderCDN api key with -k/--k*
 
 ```
+A loaderCDN API port to python, default format: mp3
+
 optional arguments:
   -h, --help            Print this help message and exit
   -F FORMAT, --format FORMAT
@@ -22,11 +24,17 @@ optional arguments:
   -I FILE, --input-file FILE
                         Read non-playlist URLs from FILE
   -k KEY, --key KEY     supply loadercdn api key
+  -s START, --start START
+                        starting position of URLs list: 1-len(URLs)
+  -e END, --end END     end position of URLs list: 1-len(URLs)
 
-Dry-run options: NOT IMPLEMENTED YET
+Dry-run options:
   (no actual downloading)
 
+  -d, --dry             Print extracted information (headers)
+  -u, --url             Print extracted URLs (only)
 ```
+
 ## load a file of url list
 `python3 lcd-downloader.py -I listfilfe`
 
