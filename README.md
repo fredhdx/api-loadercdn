@@ -1,15 +1,17 @@
 # A Python Port for loaderCDN video downloading service
 
-# It's a free online service for video url extraction
+# It's a free CDN service to get downdable links for many online video sites. You can download OTHER FORMATS too!
 Visit https://loadercdn.io/ to sign up for your free API.
 
 # Supported website: bilibili.com, youtube.com, and more
+# Supported format: mp3, flv, mp4(partial), ogg, avi and more
 
 # Usage
 
-**python3 lcd-downloader.py [OPTIONS] URLs -k apikey**
+**python3 lcd-downloader.py [OPTIONS] -k apikey -F flv URLs**
 
-*You must supply your loaderCDN api key with -k/--k*
+*You must supply your loaderCDN api key with -k/--k. Get your key [here](https://loadercdn.io/)*
+*mp4 currently is not downdoadable from bilibili.com/ It's probably encrypted; loaderCDN cann't decipher it*
 
 ```
 A loaderCDN API port to python, default format: mp3
