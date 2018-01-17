@@ -11,7 +11,6 @@ run !
 import os
 import re
 import sys
-import time
 import json
 import logging
 import argparse
@@ -21,6 +20,9 @@ from logging import config
 from subprocess import PIPE
 from datetime import datetime
 supported_format = ['mp3','ogg','mp4','mkv','m4a','wma','wmv','avi']
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 def read_meta_from_file(mfile):
     global logger
@@ -62,12 +64,12 @@ def read_meta_from_file(mfile):
         f.close()
     return meta
 
-def encode_ffmpeg(inputfile,outputfile,meta={}):
+def encode_ffmpeg(inputfile,outputfile,meta=None):
     global logger
     if inputfile and inputfile != outputfile:
         logger.debug("encode ffmpeg %s",os.path.basename(inputfile))
         command = ['ffmpeg', '-i', '%s' % inputfile]
-        if meta:
+        if meta is not None:
             logger.debug(str(meta))
             meta_part = []
             for key,value in meta.items():
@@ -298,15 +300,16 @@ def main():
 
 if __name__ == '__main__':
 
-    with open("logging.json", "r", encoding="utf-8") as fd:
-        config = json.load(fd)
-        log_dir = os.getcwd() + os.path.sep + "log"
-        if not os.path.isdir(log_dir):
-            os.makedirs(log_dir)
-        config['handlers']['file_handler']['filename'] = (log_dir + os.path.sep + "debug-"
-                            + os.path.basename(__file__).split('.')[0]) + ".log"
-        config['handlers']['warn_handler']['filename'] = (log_dir + os.path.sep + "warn-"
-                            + os.path.basename(__file__).split('.')[0]) + ".log"
-        logging.config.dictConfig(config)
+    if os.path.isfile("logging.json"):
+        with open("logging.json", "r", encoding="utf-8") as fd:
+            config = json.load(fd)
+            log_dir = os.getcwd() + os.path.sep + "log"
+            if not os.path.isdir(log_dir):
+                os.makedirs(log_dir)
+            config['handlers']['file_handler']['filename'] = (log_dir + os.path.sep + "debug-"
+                                + os.path.basename(__file__).split('.')[0]) + ".log"
+            config['handlers']['warn_handler']['filename'] = (log_dir + os.path.sep + "warn-"
+                                + os.path.basename(__file__).split('.')[0]) + ".log"
+            logging.config.dictConfig(config)
 
     main()

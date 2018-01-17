@@ -14,6 +14,10 @@ from urllib.parse import urlparse
 from datetime import datetime
 import requests
 
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 # default parameter
 dry_run = False
 oformat = 'mp3'
@@ -30,7 +34,6 @@ custom_headers = {}
 
 cdn_formats = ['mp3','mp4','acc','flv','wma','ogg','mkv','avi','rmvb','mpg','mpeg','vob','aif','AIFC','AIF'
         'wav','ape']
-
 
 """example content
 continue_download is not supported!
@@ -105,8 +108,6 @@ continue_download is not supported!
   ]
 }
 """
-
-
 class loaderCDN():
     stream_types = ['mp4','flv','avi','mp3','wav','ogg','flac']
     api_url = "https://loadercdn.io/api/v1/create"
@@ -120,13 +121,18 @@ class loaderCDN():
             logger.info("Empty api_key. Exit.")
             sys.exit()
 
-    def api_req(self, url, oformat="", direct=False, seek="", duration="", headers=fake_headers):
+    def api_req(self, url, oformat="", direct=False, seek="", duration="", headers=None):
         """
         Use loaderCDN api to parse video url and get direct links
         Documentation: https://loadercdn.docs.apiary.io/
         Return value: dict(response_header,response_content,response_url)
         """
         global logger
+        global fake_headers
+
+        if headers is None:
+            headers = fake_headers
+
         queries = {'format':oformat, 'direct':'true' if direct else '','seek':seek,'duration':duration}
         url = url + '?' + urlencode(queries)
         values = """
@@ -290,7 +296,7 @@ def bilibili_namer(bili_url):
         logger.warn("Not a valid bilibili video link")
         return [title,sub_title]
 
-def download_main(myloader, URLs=[], url_only=False, oformat=oformat,quality=quality):
+def download_main(myloader, URLs=None, url_only=False, oformat=oformat,quality=quality):
     global custom_headers
     global fake_headers
     global cdn_formats
@@ -301,7 +307,7 @@ def download_main(myloader, URLs=[], url_only=False, oformat=oformat,quality=qua
     _headers = custom_headers if custom_headers else fake_headers
 
     try:
-        if URLs:
+        if URLs is not None:
             logger.info("共%d条视频",len(URLs))
             count = 0
             save_dir = os.getcwd() + os.path.sep + 'downloaded'
@@ -352,7 +358,7 @@ def download_main(myloader, URLs=[], url_only=False, oformat=oformat,quality=qua
 
                         # 下载开始
                         if not dry_run:
-                            logger.info("解析成功: ", url)
+                            logger.info("解析成功: %s", url)
                             if oformat == content['originalFormat']:
                                 url = url + '&quality=' + str(quality)
 
@@ -580,16 +586,17 @@ def main():
 
 if __name__ == '__main__':
 
-    with open("logging.json", "r", encoding="utf-8") as fd:
-        config = json.load(fd)
-        log_dir = os.getcwd() + os.path.sep + "log"
-        if not os.path.isdir(log_dir):
-            os.makedirs(log_dir)
-        config['handlers']['file_handler']['filename'] = (log_dir + os.path.sep + "debug-"
-                            + os.path.basename(__file__).split('.')[0]) + ".log"
-        config['handlers']['warn_handler']['filename'] = (log_dir + os.path.sep + "warn-"
-                            + os.path.basename(__file__).split('.')[0]) + ".log"
-        logging.config.dictConfig(config)
+    if os.path.isfile("logging.json"):
+        with open("logging.json", "r", encoding="utf-8") as fd:
+            config = json.load(fd)
+            log_dir = os.getcwd() + os.path.sep + "log"
+            if not os.path.isdir(log_dir):
+                os.makedirs(log_dir)
+            config['handlers']['file_handler']['filename'] = (log_dir + os.path.sep + "debug-"
+                                + os.path.basename(__file__).split('.')[0]) + ".log"
+            config['handlers']['warn_handler']['filename'] = (log_dir + os.path.sep + "warn-"
+                                + os.path.basename(__file__).split('.')[0]) + ".log"
+            logging.config.dictConfig(config)
 
     main()
 
