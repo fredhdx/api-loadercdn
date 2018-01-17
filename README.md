@@ -17,25 +17,25 @@ Visit https://loadercdn.io/ to sign up for your free API.
 ```
 A loaderCDN API port to python, default format: mp3
 
-optional arguments:
-  -h, --help            Print this help message and exit
-  -F FORMAT, --format FORMAT
-                        specify downloading format
-  -f, --force           force overwrite existing file
-  -H HEADER_FILE, --headers HEADER_FILE
-                        Load headers.txt
-  -I FILE, --input-file FILE
-                        Read non-playlist URLs from FILE
-  -k KEY, --key KEY     supply loadercdn api key, or key.txt
-  -s START, --start START
-                        starting position of URLs list: 1-len(URLs)
-  -e END, --end END     end position of URLs list: 1-len(URLs)
+-h, --help            Print this help message and exit
+-F FORMAT, --format FORMAT
+                    specify downloading format
+-f, --force           force overwrite existing file
+-H HEADER_FILE, --headers HEADER_FILE
+                    Load headers.txt
+-I FILE, --input-file FILE
+                    Read non-playlist URLs from FILE
+-k KEY, --key KEY     supply loadercdn api key: string or key.txt
+-s START, --start START
+                    starting position of URLs list: 1-len(URLs)
+-e END, --end END     end position of URLs list: 1-len(URLs)
+-d, --debug           debug mode. Enables debug.log
 
 Dry-run options:
-  (no actual downloading)
+(no actual downloading)
 
-  -d, --dry             Print extracted information (headers)
-  -u, --url             Print extracted URLs (only)
+-i, --info            Print extracted information (headers)
+-u, --url             Print extracted URLs (only)
 ```
 
 ## load a file of url list
@@ -58,6 +58,10 @@ Key: value
 ## select starting/end position within supplied listfile: -s/-e
 
 &nbsp;
+# Logging provided!
+
+    + /log/debug-lcddownloader.log 
+    + warn-lcddownloader.log
 
 # Download from existing files/multithreading: NOT SUPPORTED by LoaderCDN service
 Please contact me if you know any ways around :D

@@ -5,6 +5,8 @@ import os
 import re
 import sys
 import time
+import logging
+from logging import config
 import argparse
 from urllib.request import Request, urlopen
 from urllib.parse import urlencode
@@ -14,7 +16,7 @@ import requests
 
 # default parameter
 dry_run = False
-format = 'mp3'
+oformat = 'mp3'
 quality = 1
 overwrite_lock = False
 start_position = 1
@@ -111,19 +113,21 @@ class loaderCDN():
     api_key = "" # please apply for your own free copy
 
     def set_key(self,api_key):
+        global logger
         if api_key:
             self.api_key = api_key
         else:
-            print("Empty api_key. Exit.")
+            logger.info("Empty api_key. Exit.")
             sys.exit()
 
-    def api_req(self, url, format="", direct=False, seek="", duration="", headers=fake_headers):
+    def api_req(self, url, oformat="", direct=False, seek="", duration="", headers=fake_headers):
         """
         Use loaderCDN api to parse video url and get direct links
         Documentation: https://loadercdn.docs.apiary.io/
         Return value: dict(response_header,response_content,response_url)
         """
-        queries = {'format':format, 'direct':'true' if direct else '','seek':seek,'duration':duration}
+        global logger
+        queries = {'format':oformat, 'direct':'true' if direct else '','seek':seek,'duration':duration}
         url = url + '?' + urlencode(queries)
         values = """
                   {{
@@ -136,7 +140,7 @@ class loaderCDN():
             request = Request(self.api_url, data=bytes(values,encoding='utf-8'), headers=headers)
             response = urlopen(request)
         except urllib.error.URLError as e:
-            print(e)
+            logger.exception(e)
             sys.exit(1)
 
         status_code = response.getcode()
@@ -146,27 +150,28 @@ class loaderCDN():
             response_url = response.geturl()
             return {'response_header':response_header,'response_content':response_content, 'response_url':response_url}
         elif status_code == 200:
-            print("This video does not exist: %s" % url)
+            logger.exception("This video does not exist: %s",url)
             return None
         elif status_code == 400:
-            print("Parameter missing / wrong data type")
-            print("Parameters:\n%s" % str(args))
-            print("Data:\n%s" % values)
+            logger.error("Parameter missing / wrong data type")
+            logger.error("Parameters:\n%s",str(args))
+            logger.error("Data:\n%s",values)
             return None
         elif status_code == 401:
-            print("Invalid API key")
+            logger.error("Invalid API key")
             return None
         else:
-            print("Error code: %s\n" % status_code)
+            logger.error("Error code: %s\n",status_code)
             return None
 
     def parse_response_content(self,response_matrix):
         """
         response_matrix: dict(response_header,response_content,response_url)
         """
+        global logger
         # check
         if not isinstance(response_matrix,dict):
-            print("parse_response_content error: input not dict")
+            logger.info("parse_response_content error: input not dict")
             sys.exit(1)
 
         headers = dict(response_matrix['response_header']) # input: list
@@ -176,6 +181,7 @@ class loaderCDN():
         return {'headers':headers, 'content':content, 'url':requested_url}
 
 class ProgressBar(object):
+    global logger
     def __init__(self, title, count=0.0, run_status=None, fin_status=None, total=100.0,    unit='', sep='/', chunk_size=1.0):
         super(ProgressBar, self).__init__()
         self.info = "[%s] %s %.2f %s %s %.2f %s"
@@ -201,7 +207,7 @@ class ProgressBar(object):
         if self.count >= self.total:
             end_str = '\n'
             self.status = status or self.fin_status
-        print(self.__get_info(), end_str)
+        logger.info(self.__get_info(), end_str)
 
 
 def load_headers(headerfile):
@@ -210,11 +216,12 @@ def load_headers(headerfile):
     format: key: value \n key: value \n " and ' are allowed
     """
     global custom_headers
+    global logger
 
     try:
         f = open(headerfile,'r')
     except Exception as e:
-        print("headers.txt open failed. Revert to default fake-headers")
+        logger.exception("headers.txt open failed. Revert to default fake-headers")
 
     _headers = {}
     text = f.readlines()
@@ -227,7 +234,6 @@ def load_headers(headerfile):
 
     must = False
     for key, value in _headers.items():
-        print(key, value)
         if key == 'Content-Type' and value == 'application/json':
             must = True
 
@@ -235,7 +241,7 @@ def load_headers(headerfile):
         print("Custom headers.txt loaded")
         custom_headers = _headers
     else:
-        print("Headers must contain entry: Content-Type: application/json\nCustom headers.txt not loaded")
+        logger.warn("Headers must contain entry: Content-Type: application/json\nCustom headers.txt not loaded")
 
     return
 
@@ -244,6 +250,7 @@ def bilibili_namer(bili_url):
     Find out the real video name
     """
     global request_timeout
+    global logger
 
     if "www.bilibili.com/video/av" in bili_url:
         title = ""
@@ -253,11 +260,12 @@ def bilibili_namer(bili_url):
             try:
                 r = requests.get(bili_url)
                 break
-            except:
+            except Exception as e:
                 if time.time() - start_time > request_timeout:
-                    print("bilibili_namer timeout: unable to connect after %s s" % request_timeout)
+                    logger.warn("bilibili_namer timeout: unable to connect after %s s",request_timeout)
                     return [title, sub_title]
                 else:
+                    logger.exception(e)
                     time.sleep(1)
 
         from bs4 import BeautifulSoup
@@ -274,44 +282,36 @@ def bilibili_namer(bili_url):
             if search:
                 sub_title = soup.findAll('option',{"value":p_str})[0].text[2:]
             else:
-                print("%s out of range. 无效链接" % p_str)
+                logger.warn("%s out of range. 无效链接",p_str)
                 return [title, sub_title]
 
         return [title,sub_title]
     else:
-        print("Not a valid bilibili video link")
+        logger.warn("Not a valid bilibili video link")
         return [title,sub_title]
 
-def download_main(myloader, URLs=[], url_only=False, format=format,quality=quality):
+def download_main(myloader, URLs=[], url_only=False, oformat=oformat,quality=quality):
     global custom_headers
     global fake_headers
     global cdn_formats
     global dry_run
     global overwrite_lock
+    global logger
 
     _headers = custom_headers if custom_headers else fake_headers
 
     try:
         if URLs:
-            print("共%d条视频" % len(URLs))
+            logger.info("共%d条视频",len(URLs))
             count = 0
             save_dir = os.getcwd() + os.path.sep + 'downloaded'
 
             # 检查已下载文件
-            saved_videos = [x[0].split(os.path.sep)[-1] for x in os.walk(save_dir) if os.path.isdir(x[0])]
+            # saved_videos = [x[0].split(os.path.sep)[-1] for x in os.walk(save_dir) if os.path.isdir(x[0])]
 
             if not os.path.isdir(save_dir):
                 os.makedirs(save_dir)
 
-            # logging
-            global start_position
-            global original_list_name
-            flog = open("log.txt",'w')
-            flog.write("开始下载\n")
-            if original_list_name:
-                flog.write("url列表文件: %s\n" % original_list_name)
-            flog.write("从[URLs]第%d条开始\n" % start_position)
-            flog.flush()
 
             for uri in URLs:
 
@@ -327,11 +327,9 @@ def download_main(myloader, URLs=[], url_only=False, format=format,quality=quali
                     title,subtitle = bilibili_namer(uri)
 
                 if title:
-                    tmp_file = save_dir + os.path.sep + title + os.path.sep + title + '.' + format
+                    tmp_file = save_dir + os.path.sep + title + os.path.sep + title + '.' + oformat
                     if os.path.isfile(tmp_file) and not overwrite_lock:
-                        flog.write('已存在: %d, %s\n' % (count+1, uri))
-                        flog.flush()
-                        print("视频已存在: %s" % title + '.' + format)
+                        logger.info("视频已存在: %s", title + '.' + oformat)
                         count += 1
                         continue
 
@@ -339,51 +337,47 @@ def download_main(myloader, URLs=[], url_only=False, format=format,quality=quali
                 response = myloader.api_req(uri,headers=_headers)
 
                 if response:
-                    print("开始解析第%d/%d条视频" % (count+1,len(URLs)))
+                    logger.info("开始解析第%d/%d条视频",count+1,len(URLs))
                     # parse and download requested file
                     parsed_response = myloader.parse_response_content(response)
                     content = parsed_response['content'] # an json object
                     head = parsed_response['headers'] # json object
 
                     avail_formats = [x['format'] for x in content['formats']]
-                    if format in avail_formats:
-                        index = avail_formats.index(format)
+                    if oformat in avail_formats:
+                        index = avail_formats.index(oformat)
                         if not title:
                             title,ext = content['formats'][index]['filename'].strip().split('.')
                         url = content['formats'][index]['url'].strip()
 
                         # 下载开始
                         if not dry_run:
-                            print("解析成功: " + url)
-                            if format == content['originalFormat']:
+                            logger.info("解析成功: ", url)
+                            if oformat == content['originalFormat']:
                                 url = url + '&quality=' + str(quality)
 
-                            if format == 'mp4' and "bilibili" in uri:
-                                print(".mp4 download is not currently supported on bilibili.com")
-                                print("Please choose another format")
+                            if oformat == 'mp4' and "bilibili" in uri:
+                                logger.error(".mp4 download is not currently supported on bilibili.com")
+                                logger.error("Please choose another format")
                                 sys.exit()
 
-                            print("开始下载第%d/%d个视频" % (count+1,len(URLs)))
-                            print("名称:%s" % title)
+                            logger.info("开始下载第%d/%d个视频",count+1,len(URLs))
+                            logger.info("名称:%s", title)
                             filepath = save_dir + os.path.sep + title
 
                             if not os.path.isdir(filepath):
                                 os.makedirs(filepath)
 
-                            filename = filepath + os.path.sep + title + '.' + format
+                            filename = filepath + os.path.sep + title + '.' + oformat
 
                             if os.path.isfile(filename):
                                 if overwrite_lock:
-                                    flog.write('重新下载: %d, %s\n' % (count+1, uri))
-                                    flog.flush()
                                     backupfile = (filepath + os.path.sep + "backup-" + title
                                             + datetime.now().strftime('%Y-%m-%d-%H-%M') + '.'
-                                            + format)
+                                            + oformat)
                                     os.rename(filename, backupfile)
                                 else:
-                                    flog.write('已存在: %d, %s\n' % (count+1, uri))
-                                    flog.flush()
-                                    print("视频已存在: %s" % title + '.' + format)
+                                    logger.warn("视频已存在: %s", title + '.' + oformat)
                                     count += 1
                                     continue
 
@@ -394,8 +388,6 @@ def download_main(myloader, URLs=[], url_only=False, format=format,quality=quali
                                 ftag.write(ftag_str)
                                 ftag.close()
 
-                                flog.write('开始下载: %d, %s\n' % (count+1, uri))
-                                flog.flush()
                                 size = 0
                                 r = requests.get(url,headers=_headers,stream=True)
                                 chunk_size = 512*1024 # 单次请求最大值
@@ -408,34 +400,30 @@ def download_main(myloader, URLs=[], url_only=False, format=format,quality=quali
                                         sys.stdout.write('\b'*64 + 'Now: %d' % size)
                                         sys.stdout.flush()
                             except Exception as e:
-                                print(e)
+                                logger.exception(e)
                                 sys.exit(1)
 
-                            print("%s下载完毕\n" % title)
+                            logger.info("%s下载完毕\n",title)
 
                         # Dry-run options
                         elif url_only:
                             avail_formats = [x['format'] for x in content['formats']]
                             for _format in avail_formats:
                                 index = avail_formats.find(_format)
-                                print("format: " + _foramt + ", url: " +
+                                logger.info("format: " + _foramt + ", url: " +
                                         contents['formats'][index]['url'].strip())
                         else:
                             content_tmp = content
-                            try:
-                                del content_tmp['formats']
-                                del content_tmp['qualities']
-                            except:
-                                pass
+                            content.pop('formats',None)
+                            content.pop('qualities',None)
                             pretty = json.dumps(content, indent=4,sort_keys=True, ensure_ascii=False)
-                            print(pretty)
+                            logger.info(pretty)
                             pretty = json.dumps(head, indent=4,sort_keys=True, ensure_ascii=False)
-                            print(pretty)
+                            logger.info(pretty)
 
                     # 要求格式不存在
                     else:
-                        print("Requested format %s not available through loaderCDN" % format)
-                        flog.write("Requested %s not available through loaderCDN\n" % format)
+                        logger.warn("Requested format %s not available through loaderCDN",oformat)
                         continue
 
                 # r = api_req() bad response, caught by api_req() already
@@ -446,11 +434,9 @@ def download_main(myloader, URLs=[], url_only=False, format=format,quality=quali
                 time.sleep(5)
                 count += 1
 
-            print('\n列表下载完成\n')
-            flog.write('\n列表下载完成\n')
-            flog.close()
+            logger.info('\n列表下载完成\n')
     except Exception as e:
-        print(e)
+        logger.exception(e)
         sys.exit(1)
 
 def main():
@@ -471,7 +457,7 @@ def main():
     )
     dry_run_grp = dry_run_grp.add_mutually_exclusive_group()
     dry_run_grp.add_argument(
-        '-d', '--dry', action='store_true', help='Print extracted information (headers)'
+        '-i', '--info', action='store_true', help='Print extracted information (headers)'
     )
     dry_run_grp.add_argument(
         '-u', '--url', action='store_true',
@@ -509,6 +495,11 @@ def main():
         help='end position of URLs list: 1-len(URLs)'
     )
 
+    parser.add_argument(
+        '-d', '--debug', action='store_true',
+        help='debug mode. Enables debug.log'
+    )
+
     parser.add_argument('URL', nargs='*', help=argparse.SUPPRESS)
 
     args = parser.parse_args()
@@ -519,19 +510,19 @@ def main():
 
     global dry_run
     global custom_headers
-    global format
+    global oformat
     global quality
     global overwrite_lock
 
     url_only = args.url
-    if args.dry:
+    if args.info:
         dry_run = True
 
     if args.headers:
         load_headers(args.headers)
 
     if args.format:
-        format = str(args.format)
+        oformat = str(args.format)
 
     if args.force:
         overwrite_lock = True
@@ -571,15 +562,34 @@ def main():
         else:
             api_key = args.key
 
+    # Logging
+    global logger
+    if args.debug:
+        logger = logging.getLogger("debug_logger")
+        logger.info("debugging mode")
+    else:
+        logger = logging.getLogger()
 
     try:
         myloader = loaderCDN()
         myloader.set_key(api_key)
-        download_main(myloader, URLs, url_only=url_only ,format=format,quality=quality)
+        download_main(myloader, URLs, url_only=url_only ,oformat=oformat,quality=quality)
     except Exception as e:
         print(e)
         sys.exit(1)
 
 if __name__ == '__main__':
+
+    with open("logging.json", "r", encoding="utf-8") as fd:
+        config = json.load(fd)
+        log_dir = os.getcwd() + os.path.sep + "log"
+        if not os.path.isdir(log_dir):
+            os.makedirs(log_dir)
+        config['handlers']['file_handler']['filename'] = (log_dir + os.path.sep + "debug-"
+                            + os.path.basename(__file__).split('.')[0]) + ".log"
+        config['handlers']['warn_handler']['filename'] = (log_dir + os.path.sep + "warn-"
+                            + os.path.basename(__file__).split('.')[0]) + ".log"
+        logging.config.dictConfig(config)
+
     main()
 

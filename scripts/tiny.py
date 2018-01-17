@@ -1,10 +1,10 @@
 import os
+from bs4 import BeautifulSoup
 from urllib.parse import urlparse
 import re
 import requests
 import time
 import sys
-from bs4 import BeautifulSoup
 
 """
 给所有下载的文件夹添加tag文件, 记录更多信息便于辨认
@@ -18,7 +18,8 @@ def bilibili_namer(bili_url):
     Find out the real video name
     """
     request_timeout = 60
-    titile=subtitle=""
+    title = ""
+    subtitle=""
 
     if "www.bilibili.com/video/av" in bili_url:
         start_time = time.time()
@@ -26,14 +27,13 @@ def bilibili_namer(bili_url):
             try:
                 r = requests.get(bili_url)
                 break
-            except:
+            except requests.exceptions.ConnectionError:
                 if time.time() - start_time > request_timeout:
                     print("bilibili_namer timeout: unable to connect after %s s" % request_timeout)
                     return [title,subtitle]
                 else:
                     time.sleep(1)
 
-        from bs4 import BeautifulSoup
         soup = BeautifulSoup(r.text,"lxml")
         title = soup.findAll('div',{'class':'v-title'})[0].text
 

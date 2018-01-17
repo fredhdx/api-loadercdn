@@ -76,18 +76,20 @@ class downloader:
     def support_continue(self, url):
         headers = self.headers
         headers['Range'] ='bytes=0-4'
-        try:
-            r = requests.head(url, headers = headers)
-            crange = r.headers['content-range']
-            self.total = int(re.match(r'^bytes 0-4/(\d+)$', crange).group(1))
-            return True
-        except:
-            pass
-
-        # try:
-        #    self.total = int(r.headers['content-length']) # this might be wrong if the download if binary file
-        # except:                                          # or compression is used
-        #    self.total = 0
+        start_time = time.time()
+        while True:
+            try:
+                r = requests.head(url, headers = headers)
+                crange = r.headers['content-range']
+                self.total = int(re.match(r'^bytes 0-4/(\d+)$', crange).group(1))
+                return True
+            except requests.exceptions.ConnectionError:
+                if time.time() - start_time > request_timeout:
+                    print("support_continue: Exceeding maximum timeout after %s seconds" % request_timeout)
+                    return False
+                else:
+                    print(e)
+                    time.sleep(1)
 
         return False
 
