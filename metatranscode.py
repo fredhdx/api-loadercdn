@@ -79,7 +79,7 @@ def encode_ffmpeg(inputfile,outputfile,meta=None):
             command.extend(meta_part)
         command.extend(['-loglevel','info'])
         command.extend(['-y','-hide_banner', '%s' % outputfile])
-        logger.info(str(command))
+        logger.info(" ".join(command))
 
         try:
             proc = subprocess.Popen(command, stdout=PIPE, stderr=PIPE)
@@ -91,7 +91,11 @@ def encode_ffmpeg(inputfile,outputfile,meta=None):
             outs, _errs = proc.communicate()
             outs = outs.decode('utf-8')
             errs = errs + '\n' + _errs.decode('utf-8')
-            logger.debug("ffmpeg stdout: %s\nffmpeg stderr: %s",outs, errs)
+            logger.debug("ffmpeg out: %s", outs)
+            if errs:
+                logger.warning("ffmpeg warning: %s",errs)
+            else:
+                logger.debug("ffmpeg stdout: %s\nffmpeg stderr: %s",outs, errs)
             logger.info("ffmpeg encode success")
         except FileNotFoundError:
             logger.exception("encode_ffmpeg")
@@ -125,7 +129,7 @@ def writemeta_ffmpeg(inputfile,meta, outputfile=""):
     command.extend(['-loglevel','warning'])
     command.extend(['-c','copy','-y','-hide_banner', '%s' % writefile])
 
-    logger.info(str(command))
+    logger.info(" ".join(command))
 
     try:
         # call ffmpeg
@@ -138,7 +142,11 @@ def writemeta_ffmpeg(inputfile,meta, outputfile=""):
         outs, _errs = proc.communicate()
         outs = outs.decode('utf-8')
         errs = errs + '\n' + _errs.decode('utf-8')
-        logger.debug("ffmpeg stdout: %s\nffmpeg stderr: %s", outs,errs)
+        logger.debug("ffmpeg out: %s", outs)
+        if errs:
+            logger.warning("ffmpeg warning: %s",errs)
+        else:
+            logger.debug("ffmpeg errs: %s", errs)
         logger.info("ffmpeg meta success")
         if not outputfile or inputfile == outputfile :
             try:
@@ -184,10 +192,13 @@ def run_folders(working_dir, overwrite=False, metaonly=True, encodeonly=False, i
                 elif not metaonly and ext!= oformat:
                     outputfile = (os.path.sep.join(inputfile.split(os.path.sep)[:-1])
                         + os.path.sep + basename + '.' + oformat)
-                    if encodeonly and overwrite:
-                        encode_ffmpeg(inputfile,outputfile)
-                    elif overwrite:
-                        encode_ffmpeg(inputfile,outputfile,meta)
+                    file_exist = os.path.isfile(outputfile)
+                    logger.debug("File exist? %s", str(file_exist))
+                    if (not file_exist) or (file_exist and overwrite):
+                        if encodeonly:
+                            encode_ffmpeg(inputfile,outputfile)
+                        else:
+                            encode_ffmpeg(inputfile,outputfile,meta)
 
                 # import json
                 # logger.info(json.dumps(meta,indent=4,ensure_ascii=False,sort_keys=True))
