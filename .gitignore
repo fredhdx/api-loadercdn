@@ -3,5 +3,4 @@ downloader/
 __pycache__/
 log/
 list*
-*log*
 key.txt
