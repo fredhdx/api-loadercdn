@@ -89,6 +89,6 @@
     },
     "root": {
         "handlers": ["console","warn_handler"],
-        "level": "INFO"
+        "level": "DEBUG"
     }
 }
