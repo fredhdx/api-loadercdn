@@ -13,6 +13,7 @@ from urllib.parse import urlencode
 from urllib.parse import urlparse
 from datetime import datetime
 import requests
+import shutil
 
 
 logging.basicConfig(level=logging.INFO)
@@ -381,7 +382,7 @@ def download_main(myloader, URLs=None, url_only=False, oformat=oformat,quality=q
                                     backupfile = (filepath + os.path.sep + "backup-" + title
                                             + datetime.now().strftime('%Y-%m-%d-%H-%M') + '.'
                                             + oformat)
-                                    os.rename(filename, backupfile)
+                                    shutil.move(filename, backupfile)
                                 else:
                                     logger.warn("视频已存在: %s", title + '.' + oformat)
                                     count += 1
