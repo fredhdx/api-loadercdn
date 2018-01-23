@@ -390,7 +390,7 @@ def download_main(myloader, URLs=None, url_only=False, oformat=oformat,quality=q
 
                             try:
                                 # add folder-tag: info.log
-                                ftag = open(filepath + os.path.sep + 'info.log', 'w')
+                                ftag = open(filepath + os.path.sep + 'info.log', 'wt', encoding='utf-8')
                                 ftag_str = title + '\n' + subtitle + '\n' + uri
                                 ftag.write(ftag_str)
                                 ftag.close()
