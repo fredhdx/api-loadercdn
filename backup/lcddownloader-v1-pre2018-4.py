@@ -134,8 +134,8 @@ class loaderCDN():
         if headers is None:
             headers = fake_headers
 
-        #queries = {'format':oformat, 'direct':'true' if direct else '','seek':seek,'duration':duration}
-        #url = url + '?' + urlencode(queries) # update on 2018-4, the url entry does not require queries anymore
+        queries = {'format':oformat, 'direct':'true' if direct else '','seek':seek,'duration':duration}
+        url = url + '?' + urlencode(queries)
         values = """
                   {{
                     "key": {api_key},
@@ -161,7 +161,7 @@ class loaderCDN():
             return None
         elif status_code == 400:
             logger.error("Parameter missing / wrong data type")
-            #logger.error("Parameters:\n%s",str(args))
+            logger.error("Parameters:\n%s",str(args))
             logger.error("Data:\n%s",values)
             return None
         elif status_code == 401:
@@ -197,7 +197,7 @@ class ProgressBar(object):
         self.count = count
         self.chunk_size = chunk_size
         self.status = run_status or ""
-        self.fin_status = fin_status or " " * len(self.status)
+        self.fin_status = fin_status or " " * len(self.statue)
         self.unit = unit
         self.seq = sep
 
@@ -329,14 +329,13 @@ def download_main(myloader, URLs=None, url_only=False, oformat=oformat,quality=q
                 if len(uri.split('/')[-1].split('.')) > 1 and uri.split('/')[-1].split('.')[-1] in cdn_formats:
                     # direct file link.
                     title,ext = uri.split('/')[-1].split('.')
-                elif "bilibilix" in uri: # needs fix
+                elif "bilibili" in uri:
                     # bilibili.com
                     title,subtitle = bilibili_namer(uri)
 
                 if title:
                     tmp_file = save_dir + os.path.sep + title + os.path.sep + title + '.' + oformat
                     if os.path.isfile(tmp_file) and not overwrite_lock:
-                        logger.info("Download's already existed: %s", title + '.' + oformat)
                         logger.info("视频已存在: %s", title + '.' + oformat)
                         count += 1
                         continue
@@ -345,8 +344,7 @@ def download_main(myloader, URLs=None, url_only=False, oformat=oformat,quality=q
                 response = myloader.api_req(uri,headers=_headers)
 
                 if response:
-                    logger.info("Analyzing urls %d/%d",count+1,len(URLs))
-                    logger.info("开始解析第%d/%d条下载",count+1,len(URLs))
+                    logger.info("开始解析第%d/%d条视频",count+1,len(URLs))
                     # parse and download requested file
                     parsed_response = myloader.parse_response_content(response)
                     content = parsed_response['content'] # an json object
@@ -361,7 +359,6 @@ def download_main(myloader, URLs=None, url_only=False, oformat=oformat,quality=q
 
                         # 下载开始
                         if not dry_run:
-                            logger.info("url analyzed: %s", url)
                             logger.info("解析成功: %s", url)
                             if oformat == content['originalFormat']:
                                 url = url + '&quality=' + str(quality)
@@ -371,10 +368,8 @@ def download_main(myloader, URLs=None, url_only=False, oformat=oformat,quality=q
                                 logger.error("Please choose another format")
                                 sys.exit()
 
-                            logger.info("Downloading starts %d/%d urls",count+1,len(URLs))
-                            logger.info("开始下载第%d/%d个链接",count+1,len(URLs))
-                            logger.info("Title: %s", title)
-                            logger.info("名称: %s", title)
+                            logger.info("开始下载第%d/%d个视频",count+1,len(URLs))
+                            logger.info("名称:%s", title)
                             filepath = save_dir + os.path.sep + title
 
                             if not os.path.isdir(filepath):
@@ -389,7 +384,6 @@ def download_main(myloader, URLs=None, url_only=False, oformat=oformat,quality=q
                                             + oformat)
                                     shutil.move(filename, backupfile)
                                 else:
-                                    logger.warn("Download's already existed: %s", title + '.' + oformat)
                                     logger.warn("视频已存在: %s", title + '.' + oformat)
                                     count += 1
                                     continue
@@ -416,7 +410,6 @@ def download_main(myloader, URLs=None, url_only=False, oformat=oformat,quality=q
                                 logger.exception(e)
                                 sys.exit(1)
 
-                            logger.info("%sDownload finished\n",title)
                             logger.info("%s下载完毕\n",title)
 
                         # Dry-run options
@@ -424,8 +417,8 @@ def download_main(myloader, URLs=None, url_only=False, oformat=oformat,quality=q
                             avail_formats = [x['format'] for x in content['formats']]
                             for _format in avail_formats:
                                 index = avail_formats.find(_format)
-                                logger.info("format: " + _format + ", url: " +
-                                        content['formats'][index]['url'].strip())
+                                logger.info("format: " + _foramt + ", url: " +
+                                        contents['formats'][index]['url'].strip())
                         else:
                             content_tmp = content
                             content.pop('formats',None)
@@ -437,8 +430,7 @@ def download_main(myloader, URLs=None, url_only=False, oformat=oformat,quality=q
 
                     # 要求格式不存在
                     else:
-                        logger.warn("Requested format %s not available through loaderCDN", oformat)
-                        logger.warn("loaderCDN暂不支持请求格式%s", oformat)
+                        logger.warn("Requested format %s not available through loaderCDN",oformat)
                         continue
 
                 # r = api_req() bad response, caught by api_req() already
@@ -449,7 +441,6 @@ def download_main(myloader, URLs=None, url_only=False, oformat=oformat,quality=q
                 time.sleep(5)
                 count += 1
 
-            logger.info('\nList downloaded\n')
             logger.info('\n列表下载完成\n')
     except Exception as e:
         logger.exception(e)
