@@ -8,13 +8,13 @@ import time
 import logging
 from logging import config
 import argparse
+from bs4 import BeautifulSoup
 from urllib.request import Request, urlopen
 from urllib.parse import urlencode
 from urllib.parse import urlparse
 from datetime import datetime
 import requests
 import shutil
-
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -36,7 +36,8 @@ custom_headers = {}
 cdn_formats = ['mp3','mp4','acc','flv','wma','ogg','mkv','avi','rmvb','mpg','mpeg','vob','aif','AIFC','AIF'
         'wav','ape']
 
-"""example content
+"""
+LOADERCDN USAGE EXAMPLE
 continue_download is not supported!
 
 {
@@ -109,6 +110,7 @@ continue_download is not supported!
   ]
 }
 """
+
 class loaderCDN():
     stream_types = ['mp4','flv','avi','mp3','wav','ogg','flac']
     api_url = "https://loadercdn.io/api/v1/create"
@@ -228,6 +230,7 @@ def load_headers(headerfile):
     try:
         f = open(headerfile,'r')
     except Exception as e:
+        logger.exception(e)
         logger.exception("headers.txt open failed. Revert to default fake-headers")
 
     _headers = {}
@@ -254,14 +257,16 @@ def load_headers(headerfile):
 
 def bilibili_namer(bili_url):
     """
-    Find out the real video name
+    Extract title, subtitle from bilibili.com video
     """
+
     global request_timeout
     global logger
 
+    title = ""
+    sub_title = ""
+
     if "www.bilibili.com/video/av" in bili_url:
-        title = ""
-        sub_title = ""
         start_time = time.time()
         while True:
             try:
@@ -275,22 +280,30 @@ def bilibili_namer(bili_url):
                     logger.exception(e)
                     time.sleep(1)
 
-        from bs4 import BeautifulSoup
         soup = BeautifulSoup(r.text,"lxml")
-        title = soup.findAll('div',{'class':'v-title'})[0].text
+        scriptData = soup.findAll('script')
+        scriptINITIALSTATE = ''
 
-        if soup.findAll('option'):
-            if re.search(r'.*/video/av(\d+)(/)?$', bili_url):
-                bili_url = (bili_url + '/index_1.html' if re.search(r'av(\d+)$', bili_url)
-                            else bili_url + 'index_1.html')
-
-            p_str = urlparse(bili_url).path # get /video/av/index.html
-            search = soup.findAll('option',{"value":p_str})
-            if search:
-                sub_title = soup.findAll('option',{"value":p_str})[0].text[2:]
+        for _script in scriptData:
+            if 'window.__INITIAL_STATE__=' in _script.text:
+                scriptINITIALSTATE = _script.text
             else:
-                logger.warn("%s out of range. 无效链接",p_str)
                 return [title, sub_title]
+
+        videoData = re.search(r'window.__INITIAL_STATE__=(.*)$', scriptINITIALSTATE).group(1).replace(';(function(){var s;(s=document.currentScript||document.scripts[document.scripts.length-1]).parentNode.removeChild(s);}());', '')
+        jsonData = json.loads(videoData)
+
+        aid = jsonData['aid']
+        videoCount = jsonData['videoData']['videos']
+        title = jsonData['videoData']['title']
+        desc = jsonData['videoData']['desc']
+        pages = jsonData['videoData']['pages']
+
+        if videoCount>0:
+            page = int(re.search(r'\?p=(.*)$', bili_url).group(1)) if '?p=' in bili_url else 1
+            for each_page in pages:
+                if each_page['page'] == page:
+                    sub_title = each_page['part']
 
         return [title,sub_title]
     else:
@@ -326,12 +339,15 @@ def download_main(myloader, URLs=None, url_only=False, oformat=oformat,quality=q
                 title=""
                 subtitle = ""
                 ext = ""
-                if len(uri.split('/')[-1].split('.')) > 1 and uri.split('/')[-1].split('.')[-1] in cdn_formats:
+
+                if len(uri.split('/')[-1].split('.')) > 1:
                     # direct file link.
                     title,ext = uri.split('/')[-1].split('.')
-                elif "bilibilix" in uri: # needs fix
+                elif "bilibili" in uri: # needs fix
                     # bilibili.com
-                    title,subtitle = bilibili_namer(uri)
+                    logger.info('Bilibili is not supported currently. Bilibili不支持')
+                    return
+                    #title,subtitle = bilibili_namer(uri)
 
                 if title:
                     tmp_file = save_dir + os.path.sep + title + os.path.sep + title + '.' + oformat
@@ -361,8 +377,6 @@ def download_main(myloader, URLs=None, url_only=False, oformat=oformat,quality=q
 
                         # 下载开始
                         if not dry_run:
-                            logger.info("url analyzed: %s", url)
-                            logger.info("解析成功: %s", url)
                             if oformat == content['originalFormat']:
                                 url = url + '&quality=' + str(quality)
 
@@ -427,7 +441,6 @@ def download_main(myloader, URLs=None, url_only=False, oformat=oformat,quality=q
                                 logger.info("format: " + _format + ", url: " +
                                         content['formats'][index]['url'].strip())
                         else:
-                            content_tmp = content
                             content.pop('formats',None)
                             content.pop('qualities',None)
                             pretty = json.dumps(content, indent=4,sort_keys=True, ensure_ascii=False)
