@@ -12,7 +12,7 @@
             "class": "logging.Formatter",
             "style": "{",
             "datefmt": "%I:%M:%S",
-            "format": "{levelname:s}: {lineno:d}:  {message:s}"
+            "format": "{message:s}"
         },
         "debug": {
             "class": "logging.Formatter",
@@ -80,15 +80,9 @@
             "subject": "Something went wrong"
         }
     },
-    "loggers": { 
-        "debug_logger": {  
-            "level":"DEBUG",
-            "handlers":["file_handler"],
-            "propagate":"no"
-        }
-    },
+    "loggers": {},
     "root": {
-        "handlers": ["console","warn_handler"],
+        "handlers": ["console","warn_handler", "file_handler"],
         "level": "DEBUG"
     }
 }
