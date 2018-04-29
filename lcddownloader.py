@@ -362,12 +362,7 @@ def download_main(myloader, URLs=None, url_only=False, oformat=oformat,quality=q
                     title,ext = uri.split('/')[-1].split('.')
                 elif "bilibili" in uri: # needs fix
                     # bilibili.com
-                    # logger.info('Bilibili is not supported currently. Bilibili不支持')
                     title, subtitle = bilibili_namer(uri)
-                    #logger.info("bilibili.com is not currently supported by LoaderCDN.io")
-                    #logger.info("bilibili.com 暂不支持")
-                    #return
-                    #title,subtitle = bilibili_namer(uri)
 
                 if title:
                     tmp_file = save_dir + os.path.sep + title + os.path.sep + title + '.' + oformat

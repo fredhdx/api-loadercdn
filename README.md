@@ -1,17 +1,68 @@
-# A Python Port for loaderCDN video downloading service
+# A Python Port for loaderCDN.io
 
-### It's a free CDN service to get downdable links for many online video sites. You can download OTHER FORMATS too!
-Visit https://loadercdn.io/ to sign up for your free API.
+Download videos from video-hosting sites.
 
-### Supported website: bilibili.com, youtube.com, and more
-### Supported format: mp3, flv, mp4(partial), ogg, avi and more
+Example: bilibili.com (limited), youtube.com, vimeo.com
+
+Supported formats: mp3, flv, mp4, ogg, avi, more
 
 # Usage
 
-**python3 lcdownloader.py [OPTIONS] -k apikey -F flv URLs**
-
 *You must supply your loaderCDN api key with -k/--k. Get your key [here](https://loadercdn.io/)*
 
+*required packages: python3, requests*
+
+```bash
+python3 lcdownloader.py [OPTIONS] -k apikey URLs
+
+# to load a text file of urls: -I listfilfe
+
+# to use custom header file: -H headers.txt URLs
+
+# to overwrite existing files:: -f/--force
+
+# select starting/end position within supplied listfile: -s/-e
+
+# more options: -h/--help
+```
+
+header file format requirement:
+```
+Key: value,
+Key: value,
+Key: value
+
+# key,value strings can be single/double quoted with `' or `"
+# comma after value is not necessary but recommended
+```
+
+default behavior: downloading .mp3
+
+&nbsp;
+
+## logging options
+
+    + /log/debug-lcddownloader.log
+    + /log/warn-lcddownloader.log
+old log files will be overwritten.
+
+## dry-run option
+if you wish to only extract information on videos, use `-u` or `-i` option. However, the downloadable links will only be available on LoaderCDN server for a limited time.
+
+Inforamtion will also be saved as `titl-` prepended text files under `downloaded` directory.
+
+## Resuming downloading not supported
+this is due to that the LoaderCDN service uses youtube-dl for link resoluation and format transcoding in real-time. It does not download any content on its server. So it is impossible for it and for me to estimate the size of the file, nor to support resuming download.
+
+# Unsupported sites
+since link resolutoin is provided by loaderCDN by youtube-dl, the availability of supported sites completely depends on youtube-dl, and is likely to change in time.
+
+i will try to update the unsupported site list here. you can also submit issues to help me with it.
+
+`bilibili.com`: partially unsupported. muti-part videos do not resolve; .flv download not work. But you can still download other formats with single part videos.
+
+
+# Complete list of options
 ```
 A loaderCDN API port to python, default format: mp3
 
@@ -36,44 +87,12 @@ Dry-run options:
 -u, --url             Print extracted URLs (only)
 ```
 
-## load a file of url list
-`python3 lcd-downloader.py -I listfilfe`
-
-## use custom header file
-`python3 lcd-downloader.py -H headers.txt URLs`
-
-header files must be format:
-```
-Key: value,
-Key: value,
-Key: value
-```
-*key,value strings can be single/double quoted \'\"key\'\"*
-*comma(,) after value not necessary*
-
-## force overwrite existing files: -f/--force
-
-## select starting/end position within supplied listfile: -s/-e
-
 &nbsp;
 
-# Logging provided!
-
-    + /log/debug-lcddownloader.log
-    + warn-lcddownloader.log
-
-# Download from existing files/multithreading: NOT SUPPORTED by LoaderCDN service
-Please remove existing files for re-download, or use `--force` or `-f` option.
-
-# Unsupported sites (updated per reports):
-*The main link extraction service is provided by LoaderCDN. It might not support some of your video websites at the moment. Please contact its support for more information*
-
-bilibili.com (partially): currently, single part video is supported, from which .flv download is not support (mp4 mp3 ok). Multi-part video is not working.
-
 # Legal
-This code is distributed under [MIT license]
+The code is distributed under [MIT license]
 
-Video extraction service is provided by [LoaderCDN @ 2017](https://loadercdn.io/). The code merely wraps it in Python and provides a downloading function through [requests](http://docs.python-requests.org/en/master/).
+The code only uses service provided by [LoaderCDN @ 2018](https://loadercdn.io/) and [youtube-dl](https://github.com/rg3/youtube-dl). It complies with all their copyright disclaimers and other copyright laws.
 
 In particular,
 > THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
@@ -81,9 +100,11 @@ In particular,
 > In case your use of the software forms the basis of copyright infringement, or you use the software for any other illegal purposes, the authors cannot take any responsibility for you.
 
 # Acknowledgement
-[LoaderCDN @ 2018](https://loadercdn.docs.apiary.io) for video extraction service.
+[LoaderCDN @ 2018](https://loadercdn.docs.apiary.io)
+
 [This blog](https://www.leavesongs.com/PYTHON/resume-download-from-break-point-tool-by-python.html) for continue-downloading code reference.
+
 [soimort/you-get](https://github.com/soimort/you-get) for inspiration and Legal text.
 
 # Special Thanks
-[LoaderCDN developer](contact@loadercdn.io) for many detailed discussions and inquiries.
+[LoaderCDN developer](mailto:contact@loadercdn.io) for many detailed discussions and inquiries.
