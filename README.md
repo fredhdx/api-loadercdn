@@ -8,11 +8,9 @@ Visit https://loadercdn.io/ to sign up for your free API.
 
 # Usage
 
-**python3 lcd-downloader.py [OPTIONS] -k apikey -F flv URLs**
+**python3 lcdownloader.py [OPTIONS] -k apikey -F flv URLs**
 
 *You must supply your loaderCDN api key with -k/--k. Get your key [here](https://loadercdn.io/)*
-
-*mp4 currently is not downdoadable from bilibili.com/ It's probably encrypted; loaderCDN cann't decipher it*
 
 ```
 A loaderCDN API port to python, default format: mp3
@@ -58,13 +56,19 @@ Key: value
 ## select starting/end position within supplied listfile: -s/-e
 
 &nbsp;
+
 # Logging provided!
 
-    + /log/debug-lcddownloader.log 
+    + /log/debug-lcddownloader.log
     + warn-lcddownloader.log
 
 # Download from existing files/multithreading: NOT SUPPORTED by LoaderCDN service
-Please contact me if you know any ways around :D
+Please remove existing files for re-download, or use `--force` or `-f` option.
+
+# Unsupported sites (updated per reports):
+*The main link extraction service is provided by LoaderCDN. It might not support some of your video websites at the moment. Please contact its support for more information*
+
+bilibili.com (partially): currently, single part video is supported, from which .flv download is not support (mp4 mp3 ok). Multi-part video is not working.
 
 # Legal
 This code is distributed under [MIT license]
@@ -77,6 +81,9 @@ In particular,
 > In case your use of the software forms the basis of copyright infringement, or you use the software for any other illegal purposes, the authors cannot take any responsibility for you.
 
 # Acknowledgement
-[LoaderCDN @ 2017](https://loadercdn.docs.apiary.io) for video extraction service.
+[LoaderCDN @ 2018](https://loadercdn.docs.apiary.io) for video extraction service.
 [This blog](https://www.leavesongs.com/PYTHON/resume-download-from-break-point-tool-by-python.html) for continue-downloading code reference.
 [soimort/you-get](https://github.com/soimort/you-get) for inspiration and Legal text.
+
+# Special Thanks
+[LoaderCDN developer](contact@loadercdn.io) for many detailed discussions and inquiries.

@@ -177,20 +177,16 @@ class loaderCDN():
             response_content = response.read().decode("utf-8")
             response_url = response.geturl()
             return {'response_header':response_header,'response_content':response_content, 'response_url':response_url}
-        elif status_code == 200:
-            logger.exception("This video does not exist: %s",url)
-            return None
-        elif status_code == 400:
-            logger.error("Parameter missing / wrong data type")
-            #logger.error("Parameters:\n%s",str(args))
-            logger.error("Data:\n%s",values)
-            return None
-        elif status_code == 401:
-            logger.error("Invalid API key")
-            return None
         else:
-            logger.error("Error code: %s\n",status_code)
+            logger.warn(url)
+            logger.warn("Server Error: %s", 200)
+            message = json.loads(response.read().decode("utf-8"))['message']
+            logger.warn("Server message: " + message + os.linesep)
             return None
+            #logger.warn("Requests Error: %s", 400)
+            #logger.warn("Parameter missing / wrong data type")
+            #logger.warn("Requests Error: %s", 401)
+            #logger.warn("Invalid API key")
 
     def parse_response_content(self,response_matrix):
         """
@@ -236,7 +232,6 @@ class ProgressBar(object):
             end_str = '\n'
             self.status = status or self.fin_status
         logger.info(self.__get_info(), end_str)
-
 
 def load_headers(headerfile):
     """
@@ -306,8 +301,10 @@ def bilibili_namer(bili_url):
         for _script in scriptData:
             if 'window.__INITIAL_STATE__=' in _script.text:
                 scriptINITIALSTATE = _script.text
-            else:
-                return [title, sub_title]
+
+        if not scriptINITIALSTATE:
+            logger.warn('window.__INITIAL_STATE__= not exist')
+            return [title, sub_title]
 
         videoData = re.search(r'window.__INITIAL_STATE__=(.*)$', scriptINITIALSTATE).group(1).replace(';(function(){var s;(s=document.currentScript||document.scripts[document.scripts.length-1]).parentNode.removeChild(s);}());', '')
         jsonData = json.loads(videoData)
@@ -318,8 +315,9 @@ def bilibili_namer(bili_url):
         desc = jsonData['videoData']['desc']
         pages = jsonData['videoData']['pages']
 
-        if videoCount>0:
-            page = int(re.search(r'\?p=(.*)$', bili_url).group(1)) if '?p=' in bili_url else 1
+
+        if '?p=' in bili_url:
+            page = int(re.search(r'\?p=(.*)$', bili_url).group(1))
             for each_page in pages:
                 if each_page['page'] == page:
                     sub_title = each_page['part']
@@ -366,9 +364,9 @@ def download_main(myloader, URLs=None, url_only=False, oformat=oformat,quality=q
                     # bilibili.com
                     # logger.info('Bilibili is not supported currently. Bilibili不支持')
                     title, subtitle = bilibili_namer(uri)
-                    logger.info("bilibili.com is not currently supported by LoaderCDN.io")
-                    logger.info("bilibili.com 暂不支持")
-                    return
+                    #logger.info("bilibili.com is not currently supported by LoaderCDN.io")
+                    #logger.info("bilibili.com 暂不支持")
+                    #return
                     #title,subtitle = bilibili_namer(uri)
 
                 if title:
@@ -402,12 +400,6 @@ def download_main(myloader, URLs=None, url_only=False, oformat=oformat,quality=q
                             url = content['formats'][index]['url'].strip()
                             #if oformat == content['originalFormat']:  # this seems to cause some problems
                                 #url = url + '&quality=' + str(quality)
-
-                            if oformat == 'mp4' and "bilibili" in uri:
-                                logger.error(".mp4 download is not currently supported on bilibili.com"
-                                             + os.linesep + "Please choose another format")
-                                logger.error("bilibili.com 暂不支持mp4下载" + os.linesep + "请选择另一种格式" + os.linesep)
-                                sys.exit()
 
                             logger.info("Downloading: %s", title + "." + ext)
                             logger.info("下载开始")
@@ -497,7 +489,7 @@ def download_main(myloader, URLs=None, url_only=False, oformat=oformat,quality=q
                 time.sleep(5)
                 count += 1
 
-            if not dry_run:
+            if not dry_run and len(URLs) > 1:
                 logger.info('List downloaded')
                 logger.info('列表下载完成' + os.linesep)
     except Exception as e:
