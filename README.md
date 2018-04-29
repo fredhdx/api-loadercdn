@@ -61,6 +61,7 @@ i will try to update the unsupported site list here. you can also submit issues 
 
 `bilibili.com`: partially unsupported. muti-part videos do not resolve; .flv download not work. But you can still download other formats with single part videos.
 
+`https://www.dplay.se`: audio cannot be found on videos hosted on this website.
 
 # Complete list of options
 ```
@@ -90,7 +91,7 @@ Dry-run options:
 &nbsp;
 
 # Legal
-The code is distributed under [MIT license]
+The code is distributed under [MIT license](https://opensource.org/licenses/MIT)
 
 The code only uses service provided by [LoaderCDN @ 2018](https://loadercdn.io/) and [youtube-dl](https://github.com/rg3/youtube-dl). It complies with all their copyright disclaimers and other copyright laws.
 
