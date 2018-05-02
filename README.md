@@ -1,5 +1,7 @@
 # A Python Port for loaderCDN.io
 
+> Several users have brought out that some websites or some formats are not working correclty. While I will try my best to investigate these issues, there is a large possibility that the problems do not belong to this code. Instead, the problems might come from the loaderCDN.io server, which is using youtube-dl as video urls extractors and it not always update-to-date with the ever-changing video sites' framework. In that case, we could only hope these issues would be addressed by youtube-dl in time, or find alternative ways.
+
 Download videos from video-hosting sites.
 
 Example: bilibili.com (limited), youtube.com, vimeo.com
